@@ -12,9 +12,7 @@ extern int yylineno;
 extern int yylex (void);
 extern void yyerror(const char *);
 extern void node3 (ASTNode*, ASTNode*, ASTNode*);
-
-GlobalSymbolTable* global_sym_table = new GlobalSymbolTable(); 
-
+#define YYDEBUG 1
 
 FILE *astgraph = stderr ;
 static int numnodes = 0;
@@ -26,7 +24,7 @@ static int numnodes = 0;
 
 %start program
 
-%token <ASTNode> Identifier Integer Float String TypeHint List ARITHMETIC_OPERATOR RELATIONAL_OPERATOR LOGICAL_OPERATOR BITWISE_OPERATOR ASSIGNMENT_OPERATOR CONTROL_FLOW Print Class Object_or_methodcall MethodDef Inheritance Main Loop INDENT DEDENT Right_parem  Left_paren Comma 
+%token <ASTNode> Identifier Integer Float String TypeHint List ARITHMETIC_OPERATOR RELATIONAL_OPERATOR LOGICAL_OPERATOR BITWISE_OPERATOR ASSIGNMENT_OPERATOR CONTROL_FLOW Print Class Object_or_methodcall MethodDef Inheritance Main Loop INDENT DEDENT Right_parem  Left_paren 
 %token <ASTNode> PrimitiveType NEWLINE
 %type <ASTNode> program expression statement
 
@@ -63,29 +61,10 @@ program: statement ';' {
     $$->globalindex = numnodes ++;
     node3 ($1, $$, $2);
 }
-
-// In the rule for program, create a new function symbol table and add it to the global symbol table
-program: function_list
-{
-    FunctionSymbolTable *funcST = new FunctionSymbolTable($1);
-    globalST->addFunction($1->name, funcST);
+| program NEWLINE {
+        $$ = $1; 
 }
-
-function: PrimitiveType Identifier Left_paren parameter_list Right_parem compound_statement
-{
-    FunctionSymbolTable *funcST = new FunctionSymbolTable($2);
-    globalST->addFunction($2, funcST);
-}
-
-function_list: function | function_list function
-
-// In the rule for parameter_list, add the parameters to the current function symbol table
-parameter_list: parameter_list Comma parameter
-{
-    FunctionSymbolTable *funcST = globalST->getFunction(currFuncName);
-    funcST->addParameter($3);
-}
-
+;
 
 statement: expression NEWLINE {
     $$ = $1;
@@ -95,12 +74,12 @@ statement: expression NEWLINE {
 | CONTROL_FLOW expression Loop NEWLINE INDENT CONTROL_BLOCK DEDENT {
     $$ = (ASTNode *)malloc(sizeof(ASTNode));
     (*$$).type = strdup ("CONTROL_FLOW");
-    (*$$).sym = strdup("CONTROL_FLOW");
-    (*$$).left = $2;
-    (*$$).right = $6;
+    (*$$).sym = $1->sym;
+    (*$$).left = $2; 
+    (*$$).right = $6; 
     $$->globalindex = numnodes;
     node3 ($2, $$, $6);
-    numnodes ++;
+    numnodes ++; 
 }
 | CONTROL_FLOW Loop NEWLINE INDENT CONTROL_BLOCK DEDENT {
     $$ = (ASTNode *)malloc(sizeof(ASTNode));
@@ -112,7 +91,6 @@ statement: expression NEWLINE {
     node3 (NULL, $$, $5);
     numnodes ++;
 }
-| NEWLINE
 ;
 
 
@@ -294,6 +272,7 @@ CONTROL_BLOCK: CONTROL_BLOCK statement {
 | statement {
     $$ = $1;
 }
+;
 
 %%
 
@@ -314,6 +293,9 @@ void close_input_file() {
 
 int main(int argc, char** argv) {
 
+#ifdef YYDEBUG
+    yydebug = 1;
+#endif
     if (argc < 2) {
         printf("Usage: %s <input_file>\n", argv[0]);
         return 1;

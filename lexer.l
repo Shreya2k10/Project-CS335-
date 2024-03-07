@@ -63,7 +63,6 @@ int return_indent = -1;
 Whitespace [ \r\f]+
 Comment "#"[^\n]*
 
-Comma ","
 Opening_curly_brace "{"
 Closing_curly_brace "}"
 Colon ":"
