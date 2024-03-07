@@ -71,11 +71,13 @@ program: function_list
     globalST->addFunction($1->name, funcST);
 }
 
-function: type ID Left_paren parameter_list Right_parem compound_statement
+function: PrimitiveType Identifier Left_paren parameter_list Right_parem compound_statement
 {
     FunctionSymbolTable *funcST = new FunctionSymbolTable($2);
     globalST->addFunction($2, funcST);
 }
+
+function_list: function | function_list function
 
 // In the rule for parameter_list, add the parameters to the current function symbol table
 parameter_list: parameter_list Comma parameter
